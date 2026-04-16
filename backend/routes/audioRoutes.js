@@ -3,7 +3,7 @@ const router = express.Router();
 const { Op } = require('sequelize');
 const Task = require('../models/Task');
 const { verifyToken } = require('../utils/tokenUtils');
-const { getTrialCount, increaseTrialCount } = require('../utils/trialLimit');
+const { getTrialCount, increaseTrialCount, checkMonthlyRemaining } = require('../utils/trialLimit');
 const generateTaskId = require('../utils/generateTaskId');
 const axios = require('axios'); // 添加 axios
 require('dotenv').config();
@@ -115,18 +115,21 @@ router.post('/generate', async (req, res) => {
         message: 'Token验证失败，请使用有效的试用Token'
       });
     }
-    const userKey = tokenVerify.userKey;
+    const userKey = tokenVerify.userKey || 'email_' + tokenVerify.email;
 
-    // 2. 检查试用次数
+    // 2. 获取试用次数信息
     const trialInfo = await getTrialCount(userKey);
-    if (trialInfo.remaining <= 0) {
+
+    // 3. 检查总可用次数
+    // 规则：每日3次 + 每月50次（每日用完后可以用月度抵扣）
+    if (trialInfo.remaining <= 0 && trialInfo.monthlyRemaining <= 0) {
       return res.status(403).json({
         success: false,
-        message: `今日试用次数已用完（每日${trialInfo.dailyLimit}次）`
+        message: '本月试用次数已用完（每日3次 + 每月50次）'
       });
     }
 
-    // 3. 校验前端参数
+    // 4. 校验前端参数
     const {
       Unit_Topic,
       Core_Vocabulary,
@@ -181,7 +184,10 @@ router.post('/generate', async (req, res) => {
     // 6. 增加试用次数
     await increaseTrialCount(userKey);
 
-    // 7. 异步调用 Coze API
+    // 7. 重新获取最新的试用次数信息（用于返回）
+    const updatedTrialInfo = await getTrialCount(userKey);
+
+    // 8. 异步调用 Coze API
     (async () => {
       try {
         const cozeResult = await callCozeAPI(req.body);
@@ -202,13 +208,14 @@ router.post('/generate', async (req, res) => {
       }
     })();
 
-    // 8. 返回成功响应
+    // 9. 返回成功响应
     return res.json({
       success: true,
-      message: `任务提交成功！剩余试用次数：${trialInfo.remaining - 1}次`,
+      message: `任务提交成功！剩余试用次数：${updatedTrialInfo.remaining}次，本月剩余：${updatedTrialInfo.monthlyRemaining}次`,
       data: {
         taskId,
-        remainingTrials: trialInfo.remaining - 1
+        remainingTrials: updatedTrialInfo.remaining,
+        monthlyRemaining: updatedTrialInfo.monthlyRemaining
       }
     });
   } catch (error) {

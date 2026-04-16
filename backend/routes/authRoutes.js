@@ -3,11 +3,12 @@ const router = express.Router();
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
+const { getTrialCount } = require('../utils/trialLimit');
 
 require('dotenv').config();
 
 // JWT Secret
-const JWT_SECRET = process.env.JWT_SECRET || 'hearhere_secret_key_2024';
+const JWT_SECRET = process.env.SECRET_KEY || 'hearhere_secret_key_2024';
 
 // 统一响应格式
 const response = (res, success, data = null, message = '') => {
@@ -168,6 +169,49 @@ router.get('/verify', async (req, res) => {
       return response(res, false, null, '登录已过期');
     }
     return response(res, false, null, '验证失败');
+  }
+});
+
+// GET /api/auth/profile - 获取用户信息（含实时试用次数）
+router.get('/profile', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+
+    if (!token) {
+      return response(res, false, null, '未登录');
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await User.findByPk(decoded.id, {
+      attributes: ['id', 'username', 'email', 'user_key', 'plan']
+    });
+
+    if (!user) {
+      return response(res, false, null, '用户不存在');
+    }
+
+    // 获取实时试用次数（从 trial_usages 表）
+    const userKey = user.user_key || 'email_' + user.email;
+    const trialInfo = await getTrialCount(userKey);
+
+    return response(res, true, {
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        user_key: user.user_key,
+        plan: user.plan
+      },
+      remainingDaily: trialInfo.remaining,
+      remainingMonthly: trialInfo.monthlyRemaining,
+      dailyLimit: trialInfo.dailyLimit
+    });
+
+  } catch (error) {
+    if (error.name === 'TokenExpiredError') {
+      return response(res, false, null, '登录已过期');
+    }
+    return response(res, false, null, '获取用户信息失败');
   }
 });
 

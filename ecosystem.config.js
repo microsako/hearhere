@@ -16,8 +16,8 @@ module.exports = {
     {
       name: 'hearhere-frontend',
       script: './node_modules/.bin/vite',
-      args: 'serve --host 0.0.0.0 --port 8080',
-      cwd: '/home/ubuntu/hearhere/frontend',
+      args: 'preview --host 0.0.0.0 --port 8080',
+      cwd: '/home/ubuntu/hearhere/frontend/dist',
       instances: 1,
       autorestart: true,
       watch: false,

@@ -14,12 +14,12 @@ const JWT_SECRET = process.env.SECRET_KEY || 'hearhere_2026_prod_key';
  */
 const verifyOfficialToken = async (token) => {
   try {
-    if (!token) return { valid: false, userId: null };
+    if (!token) return { valid: false, userId: null, email: null };
     const decoded = jwt.verify(token, JWT_SECRET);
-    return { valid: true, userId: decoded.userId };
+    return { valid: true, userId: decoded.user_key, email: decoded.email };
   } catch (error) {
     console.error('Token验证失败:', error);
-    return { valid: false, userId: null };
+    return { valid: false, userId: null, email: null };
   }
 };
 
@@ -77,11 +77,11 @@ const verifyToken = async (authHeader) => {
     // 试用Token
     if (token.startsWith('trial_')) {
       const trialVerify = await verifyTrialToken(token);
-      return { valid: trialVerify.valid, userKey: token };
+      return { valid: trialVerify.valid, userKey: token, email: null };
     } else {
       // 正式Token
       const officialVerify = await verifyOfficialToken(token);
-      return { valid: officialVerify.valid, userKey: officialVerify.userId };
+      return { valid: officialVerify.valid, userKey: officialVerify.userId, email: officialVerify.email };
     }
   } catch (error) {
     console.error('通用Token验证失败:', error);

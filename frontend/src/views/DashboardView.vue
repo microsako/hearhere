@@ -12,8 +12,8 @@
 
         <div class="nav-links">
           <a href="#" class="nav-link active">听力材料生成</a>
-          <a href="#" class="nav-link" @click.prevent="activeTab = 'library'">我的资源库</a>
-          <a href="#" class="nav-link" @click.prevent="activeTab = 'analytics'">学情分析</a>
+          <a v-if="userInfo.plan !== 'free'" href="#" class="nav-link" @click.prevent="activeTab = 'library'">我的资源库</a>
+          <a v-if="userInfo.plan !== 'free'" href="#" class="nav-link" @click.prevent="activeTab = 'analytics'">学情分析</a>
         </div>
 
         <div class="nav-user">
@@ -70,7 +70,7 @@
             <button class="action-btn" @click="$router.push('/pricing')">
               <span class="icon">📚</span> 查看定价
             </button>
-            <button class="action-btn" @click="showHistory">
+            <button v-if="userInfo.plan !== 'free'" class="action-btn" @click="showHistory">
               <span class="icon">📋</span> 生成记录
             </button>
           </div>
@@ -95,7 +95,7 @@
                     type="text"
                     placeholder="例如：Preparing for Future Career"
                     @blur="handleInputTrim('unit_topic'); clearTaskResult()"
-                    @input="clearTaskResult()"
+                    @input="handleInputTrim('unit_topic'); clearTaskResult()"
                   />
                 </div>
 
@@ -106,7 +106,7 @@
                     type="text"
                     placeholder="例如：resume,tuition（逗号分隔）"
                     @blur="handleInputTrim('core_words'); clearTaskResult()"
-                    @input="clearTaskResult()"
+                    @input="handleInputTrim('core_words'); clearTaskResult()"
                   />
                 </div>
 
@@ -116,10 +116,12 @@
                     v-model.number="form.text_length"
                     type="number"
                     min="100"
-                    max="150"
+                    :max="userInfo.plan === 'free' ? 200 : 150"
                     placeholder="默认 150"
-                    @input="handleLengthInput; clearTaskResult()"
+                    @input="handleLengthInput"
+                    @blur="handleLengthBlur"
                   />
+                  <span v-if="lengthHint" class="length-hint">{{ lengthHint }}</span>
                 </div>
 
                 <div class="form-item">
@@ -220,7 +222,7 @@
                 </div>
 
                 <div class="result-actions">
-                  <button class="action-btn-primary" @click="saveToLibrary">保存到资源库</button>
+                  <button v-if="userInfo.plan !== 'free'" class="action-btn-primary" @click="saveToLibrary">保存到资源库</button>
                   <button class="action-btn-secondary" @click="clearTaskResult">继续生成</button>
                 </div>
               </div>
@@ -363,6 +365,7 @@ const userInfo = ref({
 });
 
 const showUserMenu = ref(false);
+const lengthHint = ref('');
 
 // 套餐名称映射
 const planNameMap = {
@@ -424,10 +427,11 @@ const canGenerate = computed(() => {
   const unitTopic = form.unit_topic.trim();
   const coreWords = form.core_words.trim();
   const textLength = Number(form.text_length);
+  const maxLength = userInfo.value.plan === 'free' ? 200 : 150;
 
   if (!unitTopic) return false;
   if (!coreWords) return false;
-  if (isNaN(textLength) || textLength < 100 || textLength > 150) return false;
+  if (isNaN(textLength) || textLength < 100 || textLength > maxLength) return false;
   if (remainingDaily.value <= 0) return false;
 
   const hasChecked = questionTypes.value.some((t) => t.checked);
@@ -445,15 +449,74 @@ const canGenerate = computed(() => {
 // 方法
 const handleInputTrim = (field) => {
   form[field] = form[field].trim();
+  
+  // 免费用户限制 200 字符
+  if (userInfo.value.plan === 'free' && form[field].length > 200) {
+    form[field] = form[field].substring(0, 200);
+  }
 };
 
 const handleLengthInput = () => {
   const value = form.text_length;
   if (isNaN(value) || value === '') {
-    form.text_length = 150;
-  } else {
-    form.text_length = Math.max(100, Math.min(150, value));
+    lengthHint.value = '';
+    return;
   }
+  
+  // 免费用户限制 100-200
+  if (userInfo.value.plan === 'free') {
+    if (value > 200) {
+      form.text_length = 200;
+      lengthHint.value = '最大200字';
+    } else if (value < 100) {
+      lengthHint.value = '最小100字';
+    } else {
+      lengthHint.value = '';
+    }
+  } else {
+    // 普通用户限制 100-150
+    if (value > 150) {
+      form.text_length = 150;
+      lengthHint.value = '最大150字';
+    } else if (value < 100) {
+      lengthHint.value = '最小100字';
+    } else {
+      lengthHint.value = '';
+    }
+  }
+};
+
+const handleLengthBlur = () => {
+  const value = form.text_length;
+  
+  // 免费用户限制 100-200
+  if (userInfo.value.plan === 'free') {
+    if (isNaN(value) || value === '') {
+      form.text_length = 150;
+    } else if (value < 100) {
+      form.text_length = 100;
+      lengthHint.value = '最小100字';
+    } else if (value > 200) {
+      form.text_length = 200;
+      lengthHint.value = '最大200字';
+    } else {
+      lengthHint.value = '';
+    }
+  } else {
+    // 普通用户限制 100-150
+    if (isNaN(value) || value === '') {
+      form.text_length = 150;
+    } else if (value < 100) {
+      form.text_length = 100;
+      lengthHint.value = '最小100字';
+    } else if (value > 150) {
+      form.text_length = 150;
+      lengthHint.value = '最大150字';
+    } else {
+      lengthHint.value = '';
+    }
+  }
+  clearTaskResult();
 };
 
 const handleDifficultyChange = () => {
@@ -556,7 +619,13 @@ const handleGenerate = async () => {
         status: 'processing',
         remainingTrials: result.data.remainingTrials,
       };
+      // 更新剩余次数
       userInfo.value.remainingDaily--;
+      if (result.data.monthlyRemaining !== undefined) {
+        userInfo.value.remainingMonthly = result.data.monthlyRemaining;
+      }
+      // 立即保存到 localStorage
+      localStorage.setItem('userInfo', JSON.stringify(userInfo.value));
       startPolling(result.data.taskId);
     } else {
       errorMsg.value = result.message || '生成任务提交失败';
@@ -648,12 +717,8 @@ onMounted(() => {
     return;
   }
 
-  // TODO: 调用API获取用户信息
-  // 这里先用模拟数据
-  const storedUser = localStorage.getItem('userInfo');
-  if (storedUser) {
-    userInfo.value = JSON.parse(storedUser);
-  }
+  // 获取用户信息（含实时剩余次数）
+  fetchUserInfo();
 
   document.addEventListener('click', (e) => {
     if (!e.target.closest('.nav-user')) {
@@ -665,6 +730,34 @@ onMounted(() => {
 onUnmounted(() => {
   stopPolling();
 });
+
+// 获取用户信息
+const fetchUserInfo = async () => {
+  try {
+    const token = getToken();
+    const response = await fetch('/api/auth/profile', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    const result = await response.json();
+    if (result.success) {
+      userInfo.value = {
+        username: result.data.user.username,
+        plan: result.data.user.plan,
+        remainingDaily: result.data.remainingDaily,
+        remainingMonthly: result.data.remainingMonthly
+      };
+      // 保存到 localStorage
+      localStorage.setItem('userInfo', JSON.stringify(userInfo.value));
+    } else {
+      errorMsg.value = result.message || '获取用户信息失败';
+    }
+  } catch (err) {
+    console.error('获取用户信息失败:', err);
+    errorMsg.value = '网络错误，请检查后端服务';
+  }
+};
 </script>
 
 <style scoped>
@@ -1000,6 +1093,13 @@ onUnmounted(() => {
   font-weight: 600;
   font-size: 0.95rem;
   color: #333333;
+}
+
+.length-hint {
+  font-size: 0.8rem;
+  color: #ff3b30;
+  margin-top: 0.3rem;
+  display: block;
 }
 
 .form-item input,

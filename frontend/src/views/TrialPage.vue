@@ -53,7 +53,7 @@
               />
             </div>
 
-            <div class="form-item">
+            <div class="form-item length-item">
               <label>语料长度</label>
               <input
                 v-model.number="form.text_length"
@@ -61,8 +61,10 @@
                 min="100"
                 max="150"
                 placeholder="默认 150"
-                @input="handleLengthInput; clearTaskResult()"
+                @input="handleLengthInput"
+                @blur="handleLengthBlur"
               />
+              <span v-if="lengthHint" class="length-hint">{{ lengthHint }}</span>
             </div>
 
             <div class="form-item">
@@ -225,6 +227,7 @@ const isGenerating = ref(false);
 const isPolling = ref(false);
 const pollCount = ref(0);
 const errorMsg = ref('');
+const lengthHint = ref('');
 let pollTimer = null;
 
 const handleInputTrim = (field) => {
@@ -234,10 +237,33 @@ const handleInputTrim = (field) => {
 const handleLengthInput = () => {
   const value = form.text_length;
   if (isNaN(value) || value === '') {
-    form.text_length = 150;
-  } else {
-    form.text_length = Math.max(100, Math.min(150, value));
+    lengthHint.value = '';
+    return;
   }
+  if (value > 150) {
+    form.text_length = 150;
+    lengthHint.value = '最大150字';
+  } else if (value < 100) {
+    lengthHint.value = '最小100字';
+  } else {
+    lengthHint.value = '';
+  }
+};
+
+const handleLengthBlur = () => {
+  const value = form.text_length;
+  if (isNaN(value) || value === '') {
+    form.text_length = 150;
+  } else if (value < 100) {
+    form.text_length = 100;
+    lengthHint.value = '最小100字';
+  } else if (value > 150) {
+    form.text_length = 150;
+    lengthHint.value = '最大150字';
+  } else {
+    lengthHint.value = '';
+  }
+  clearTaskResult();
 };
 
 const handleDifficultyChange = () => {
@@ -631,6 +657,18 @@ generateTrialToken();
 .form-item select option {
   background: #ffffff;
   color: #333333;
+}
+
+/* 语料长度输入 */
+.length-item {
+  position: relative;
+}
+
+.length-hint {
+  font-size: 0.8rem;
+  color: #ff3b30;
+  margin-top: 0.3rem;
+  display: block;
 }
 
 /* 题型选择 */

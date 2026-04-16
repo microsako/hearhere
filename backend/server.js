@@ -15,6 +15,9 @@ require('./models/TrialUsage');
 const audioRoutes = require('./routes/audioRoutes');
 const authRoutes = require('./routes/authRoutes');
 
+// 引入定时任务
+const { startDailyResetTask } = require('./utils/dailyReset');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -34,7 +37,7 @@ app.use('/api/auth', authRoutes);
 
 // 首页路由
 app.get('/', (req, res) => {
-  res.json({ 
+  res.json({
     message: 'HearHere API Server',
     version: '1.0.0',
     status: 'running'
@@ -44,9 +47,9 @@ app.get('/', (req, res) => {
 // 错误处理
 app.use((err, req, res, next) => {
   console.error('服务器错误:', err);
-  res.status(500).json({ 
-    success: false, 
-    message: '服务器内部错误' 
+  res.status(500).json({
+    success: false,
+    message: '服务器内部错误'
   });
 });
 
@@ -55,7 +58,10 @@ const startServer = async () => {
   try {
     await sequelize.authenticate();
     console.log('✅ 数据库连接成功');
-    
+
+    // 启动每日重置任务
+    startDailyResetTask();
+
     app.listen(PORT, () => {
       console.log(`🚀 服务器运行在 http://localhost:${PORT}`);
     });
