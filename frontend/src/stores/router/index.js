@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import HomeView from '@/views/HomeView.vue';
 import TrialPage from '@/views/TrialPage.vue';
+import PlusPage from '@/views/PlusPage.vue';
 import RegisterView from '@/views/RegisterView.vue';
 import LoginView from '@/views/LoginView.vue';
 import PricingView from '@/views/PricingView.vue';
@@ -16,6 +17,11 @@ const routes = [
     path: '/trial',
     name: 'trial',
     component: TrialPage
+  },
+  {
+    path: '/plus',
+    name: 'plus',
+    component: PlusPage
   },
   {
     path: '/register',

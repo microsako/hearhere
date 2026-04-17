@@ -1,8 +1,33 @@
 const express = require('express');
 const cors = require('cors');
 const sequelize = require('./config/db');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 
 require('dotenv').config();
+
+// 确保上传目录存在
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// Multer 配置
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + '-' + file.originalname);
+  }
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 50 * 1024 * 1024 } // 50MB 限制
+});
 
 // 引入模型（确保表被创建）
 require('./models/User');

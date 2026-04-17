@@ -99,7 +99,13 @@ const handleLogin = async () => {
   try {
     const result = await userStore.login(form.value.email, form.value.password);
     if (result.success) {
-      router.push('/dashboard');
+      // Plus 用户跳转到 /plus，其他用户跳转到 /dashboard
+      const user = result.data?.user;
+      if (user && user.plan === 'plus') {
+        router.push('/plus');
+      } else {
+        router.push('/dashboard');
+      }
     } else {
       errorMessage.value = result.message || '登录失败，请检查邮箱和密码';
     }

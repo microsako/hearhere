@@ -44,8 +44,8 @@
             <h4 class="features-title">功能权限</h4>
             <ul class="features-list">
               <li class="feature-item">
-                <span class="feature-label">生成</span>
-                <span class="feature-value">每日最多 3 次，单次 ≤200 字</span>
+                <span class="feature-label">生成次数</span>
+                <span class="feature-value">每日最多 3 次，每月最多 50 次，单次 ≤200 字</span>
               </li>
               <li class="feature-item">
                 <span class="feature-label">任务</span>
@@ -105,8 +105,8 @@
             <h4 class="features-title">含基础版全部功能</h4>
             <ul class="features-list">
               <li class="feature-item">
-                <span class="feature-label">生成</span>
-                <span class="feature-value">每月 ≤50 次，单次 ≤450 字</span>
+                <span class="feature-label">生成次数</span>
+                <span class="feature-value">每月最多 100 次（每日无限制），单次 ≤450 字</span>
               </li>
               <li class="feature-item">
                 <span class="feature-label">输入</span>
@@ -161,8 +161,8 @@
             <h4 class="features-title">含 Plus 全部功能</h4>
             <ul class="features-list">
               <li class="feature-item">
-                <span class="feature-label">生成</span>
-                <span class="feature-value">每月 ≤100 次，更长文本、复杂场景</span>
+                <span class="feature-label">生成次数</span>
+                <span class="feature-value">每月最多 200 次（每日无限制），更长文本、复杂场景</span>
               </li>
               <li class="feature-item">
                 <span class="feature-label">答题评阅</span>
